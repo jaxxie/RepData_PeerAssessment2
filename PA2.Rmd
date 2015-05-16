@@ -1,0 +1,146 @@
+---
+title: "Effect of Sever Weather Events on public health and economy"
+output: html_document
+---
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+In this report, we will explore the effects of different type of weathers on both population health and economic consequences. In summary, our findings are as followed:
+
+* Tornado has the greatest impact on population health with a total fatalities of 5,633
+* Flood has the greatest economic consequences with a total property and crop damages at around USD 150 billions.
+
+The ranking of the type of weather events can be seen in the table below
+
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set( warning=FALSE)
+```
+##Data Processing
+
+###Loading data
+To begin, we first obtain the data from the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. The data is compressed in bzip2 algorithm, and we will have to unzip it first to use the data and read it into a dataframe.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(R.utils)
+setwd("/Users/kindaixin/Dropbox-work/Dropbox/coursera/05 Reproducible Research/PA2")
+```
+
+```{r cache=TRUE}
+#download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2",destfile="noaa.csv.bz2",method="curl")
+#bunzip2("noaa.csv.bz2", "noaa.csv", remove = FALSE)
+data <- read.csv("noaa.csv")
+```
+
+###Extracting columns that are needed
+
+To reduce the use of memory, we extract only columns we need regarding health and economy. They are
+
+1. "BGN_DATE": The date of the severe weather record
+2. "EVTYPE": The type of weather
+3. "FATALITIES": The no. of fatalities as a result of the severe weather
+4. "PROPDMG": The property damage resulted from the severe weather
+5. "PROPDMGEXP": The order of magnitude for the property damage
+6. "CROPDMG": The crop damage resulted from the severe weather
+6. "CROPDMGEXP": The order of magnitude for the crop damage
+
+```{r cache=TRUE}
+needed.cols <- c("BGN_DATE","EVTYPE","FATALITIES","PROPDMG","PROPDMGEXP","CROPDMG","CROPDMGEXP")
+data.subset <- data[needed.cols]
+remove(data) #to save memory space we remove the data variable
+```
+
+###Extracting years from date
+We extract the year from the dataset using `as.Date` function. This data can be use to plot by years if needed.
+```{r cache=TRUE}
+data.subset[,"BGN_DATE"] = as.Date(data.subset[,"BGN_DATE"],format="%m/%d/%Y %H:%M:%S")
+data.subset[,"BGN_YEAR"] = format(data.subset[,"BGN_DATE"],"%Y")
+```
+
+###Converting the to actual figures 
+The damages recorded for the property and crop has to be multiple by the magnitude to get the actual figures.
+```{r}
+
+###1. For property damage
+#add a new multiplier column
+data.subset$PROPDMGMULTIPLIER <- as.character(data.subset$PROPDMGEXP)
+
+data.subset[(tolower(data.subset[,"PROPDMGEXP"]) == "k"),]$PROPDMGMULTIPLIER <- "3"
+data.subset[(tolower(data.subset[,"PROPDMGEXP"]) == "m"),]$PROPDMGMULTIPLIER <- "6"
+data.subset[(tolower(data.subset[,"PROPDMGEXP"]) == "b"),]$PROPDMGMULTIPLIER <- "9"
+data.subset[(tolower(data.subset[,"PROPDMGEXP"]) == "h"),]$PROPDMGMULTIPLIER <- "2"
+
+data.subset$PROPDMGMULTIPLIER <- as.numeric(data.subset$PROPDMGMULTIPLIER)
+data.subset[(is.na(data.subset[,"PROPDMGMULTIPLIER"])),]$PROPDMGMULTIPLIER <- 0
+
+#Get the actual property damage
+data.subset$PROPDMGACTUAL <- data.subset$PROPDMG * 10^data.subset$PROPDMGMULTIPLIER
+
+
+###2. For crop damage
+#add a new multiplier column
+data.subset$CROPDMGMULTIPLIER <- as.character(data.subset$CROPDMGEXP)
+
+data.subset[(tolower(data.subset[,"CROPDMGEXP"]) == "k"),]$CROPDMGMULTIPLIER <- "3"
+data.subset[(tolower(data.subset[,"CROPDMGEXP"]) == "m"),]$CROPDMGMULTIPLIER <- "6"
+data.subset[(tolower(data.subset[,"CROPDMGEXP"]) == "b"),]$CROPDMGMULTIPLIER <- "9"
+
+data.subset$CROPDMGMULTIPLIER <- as.numeric(data.subset$CROPDMGMULTIPLIER)
+data.subset[(is.na(data.subset[,"CROPDMGMULTIPLIER"])),]$CROPDMGMULTIPLIER <- 0
+
+#Get the actual crop damage
+data.subset$CROPDMGACTUAL <- data.subset$CROPDMG * 10^data.subset$CROPDMGMULTIPLIER
+
+
+#Sum both crop and property damages
+data.subset$TOTALDMG <- data.subset$CROPDMGACTUAL + data.subset$PROPDMGACTUAL
+
+```
+
+We will then sum up the total fatalities and damages (property and crop) to get the final aggregated table that we need.
+
+```{r}
+damages <-aggregate(TOTALDMG ~ EVTYPE,data = data.subset, FUN="sum", na.rm=TRUE)
+fatalities <-aggregate(FATALITIES ~ EVTYPE,data = data.subset, FUN="sum", na.rm=TRUE)
+```
+
+
+##Results
+
+###Most harmful severe weather type to population health
+
+We plot the top 15 weather types by number of fatalities below. *Tornado* is the highest cause for fatalities totalling at 5633. Hence it is the most harmful severe weather type to population health.
+
+```{r echo=FALSE}
+library(ggplot2)
+top15fatalities <- head(fatalities[order(fatalities$FATALITIES,decreasing=TRUE),],n=15)
+
+ggplot(top15fatalities, aes(x=reorder(EVTYPE,FATALITIES),y=FATALITIES)) +
+  geom_bar(stat='identity') +
+  coord_flip() + 
+  scale_y_continuous(name="Total Fatalities") +
+  scale_x_discrete(name="Type of Severe Weather") +
+  ggtitle("Total Fatalities caused by Severe Weather")
+
+```
+
+
+###Most harmful severe weather type to economy
+Next, we plot the top 15 most damaging weather type to the economy in the barplot below. *Flood* is the most damaging to the economy totalling at USD 150 billions.
+
+```{r, echo=FALSE}
+
+top15damages <- head(damages[order(damages$TOTALDMG,decreasing=TRUE),],n=15)
+
+ggplot(top15damages, aes(x=reorder(EVTYPE,TOTALDMG),y=TOTALDMG/1000000000)) +
+  geom_bar(stat='identity') +
+  coord_flip() + 
+  scale_y_continuous(name="Total Damages in USD Billions") +
+  scale_x_discrete(name="Type of Severe Weather") +
+  ggtitle("Total Property/Crop Damages caused by Severe Weather")
+
+```
+
+
+######Prepared by Jax Xie Jianxin 2015
+
