@@ -67,8 +67,8 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 <div id="loading-data" class="section level3">
 <h3>Loading data</h3>
 <p>To begin, we first obtain the data from the U.S. National Oceanic and Atmospheric Administration’s (NOAA) storm database. The data is compressed in bzip2 algorithm, and we will have to unzip it first to use the data and read it into a dataframe.</p>
-<pre class="r"><code>#download.file(&quot;https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2&quot;,destfile=&quot;noaa.csv.bz2&quot;,method=&quot;curl&quot;)
-#bunzip2(&quot;noaa.csv.bz2&quot;, &quot;noaa.csv&quot;, remove = FALSE)
+<pre class="r"><code>download.file(&quot;https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2&quot;,destfile=&quot;noaa.csv.bz2&quot;,method=&quot;curl&quot;)
+bunzip2(&quot;noaa.csv.bz2&quot;, &quot;noaa.csv&quot;, remove = FALSE)
 data &lt;- read.csv(&quot;noaa.csv&quot;)</code></pre>
 </div>
 <div id="extracting-columns-that-are-needed" class="section level3">

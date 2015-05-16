@@ -27,8 +27,8 @@ setwd("/Users/kindaixin/Dropbox-work/Dropbox/coursera/05 Reproducible Research/P
 ```
 
 ```{r cache=TRUE}
-#download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2",destfile="noaa.csv.bz2",method="curl")
-#bunzip2("noaa.csv.bz2", "noaa.csv", remove = FALSE)
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2",destfile="noaa.csv.bz2",method="curl")
+bunzip2("noaa.csv.bz2", "noaa.csv", remove = FALSE)
 data <- read.csv("noaa.csv")
 ```
 
